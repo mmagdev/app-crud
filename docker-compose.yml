@@ -1,0 +1,70 @@
+
+name: app-crud
+
+services:
+
+  # BANCO DE DADOS MYSQL
+  mysql:
+    image: mysql:8.4
+    container_name: app-crud-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd-crud
+      MYSQL_USER: coti
+      MYSQL_PASSWORD: coti
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    networks:
+      - rede-crud
+
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_PASSWORD}\" mysqladmin ping -h 127.0.0.1 -u \"$${MYSQL_USER}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # PHPMYADMIN
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: app-crud-phpmyadmin
+    restart: unless-stopped
+
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+
+    ports:
+      - "5052:80"
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    networks:
+      - rede-crud
+
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1/\") === false ? 1 : 0);'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+# VOLUMES
+volumes:
+  mysql_data:
+
+# REDE COMPARTILHADA
+networks:
+  rede-crud:
+    driver: bridge
+
+  
